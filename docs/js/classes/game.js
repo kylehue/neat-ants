@@ -82,7 +82,10 @@ Game.utils = {
 				return Math.sqrt((this.x - v.x) * (this.x - v.x) + (this.y - v.y) * (this.y - v.y));
 			},
 			heading: function(v) {
-				return Math.atan2(v.y - this.y, v.x - this.x);
+				let angle = 0;
+				if (!v) angle = Math.atan2(this.y, this.x);
+				else Math.atan2(v.y - this.y, v.x - this.x);
+				return angle;
 			},
 			copy: function() {
 				return new Vector(this.x, this.y);

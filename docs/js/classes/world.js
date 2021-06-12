@@ -19,15 +19,30 @@ class World {
 			zoomTransitionSpeed: 1
 		});
 
+		this.quadtree = new Quadtree({
+			x: this.bounds.min.x,
+			y: this.bounds.min.y,
+			width: this.size,
+			height: this.size
+		}, 8);
+
 		this.mouse = Game.utils.createVector();
 
 		//World objects
-		this.ants = [];
+		this.colonies = [];
+		this.foods = [];
 
 		for (var i = 0; i < 1; i++) {
-			let ant = new Ant(this);
-			this.ants.push(ant);
+			let colony = new Colony(this);
+			this.colonies.push(colony);
 		}
+
+		for (var i = 0; i < 1; i++) {
+			let food = new Food(this);
+			this.foods.push(food);
+		}
+
+		window.world = this;
 	}
 
 	render() {
@@ -45,9 +60,14 @@ class World {
 			fillStyle: "#43464d"
 		});
 
-		//Render ants
-		for (let ant of this.ants) {
-			ant.render();
+		//Render colonies
+		for (let colony of this.colonies) {
+			colony.render();
+		}
+
+		//Render foods
+		for (let food of this.foods) {
+			food.render();
 		}
 
 		//End camera
@@ -55,14 +75,89 @@ class World {
 	}
 
 	update() {
-		//Update ants
-		for (let ant of this.ants) {
-			ant.update();
+		//Add all ants to quadtree
+		for (let colony of this.colonies) {
+			for (let ant of colony.ants) {
+				ant.addToQuadtree(this.quadtree);
+			}
 		}
+
+		//Update colonies
+		for (let colony of this.colonies) {
+			colony.update();
+		}
+
+		//Update foods
+		for (let food of this.foods) {
+			food.update();
+		}
+
+		this.handleWallToAntCollision();
 
 		//Update world mouse
 		let worldMouse = this.camera.screenToWorld(Game.constants.mouse.x, Game.constants.mouse.y);
 		this.mouse.set(worldMouse);
+
+		//Clear quadtree
+		this.quadtree.clear();
+	}
+
+	handleWallToAntCollision() {
+		//Top wall
+		const antsTop = this.quadtree.retrieve({
+			x: this.bounds.min.x,
+			y: this.bounds.min.y,
+			width: this.size,
+			height: 50
+		});
+
+		//Right wall
+		const antsRight = this.quadtree.retrieve({
+			x: this.bounds.max.x,
+			y: this.bounds.min.y,
+			width: 50,
+			height: this.size
+		});
+
+		//Bottom wall
+		const antsBottom = this.quadtree.retrieve({
+			x: this.bounds.min.x,
+			y: this.bounds.max.y,
+			width: this.size,
+			height: 50
+		});
+
+		//Left wall
+		const antsLeft = this.quadtree.retrieve({
+			x: this.bounds.min.x,
+			y: this.bounds.min.y,
+			width: 50,
+			height: this.size
+		});
+
+		for (let ant of antsTop) {
+			if (ant.y < this.bounds.min.y) {
+				ant.self.dispose();
+			}
+		}
+
+		for (let ant of antsBottom) {
+			if (ant.y > this.bounds.max.y) {
+				ant.self.dispose();
+			}
+		}
+
+		for (let ant of antsRight) {
+			if (ant.x > this.bounds.max.x) {
+				ant.self.dispose();
+			}
+		}
+
+		for (let ant of antsLeft) {
+			if (ant.x < this.bounds.min.x) {
+				ant.self.dispose();
+			}
+		}
 	}
 
 	getRandomPosition() {

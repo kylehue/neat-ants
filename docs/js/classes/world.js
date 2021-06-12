@@ -29,17 +29,59 @@ class World {
 		this.mouse = Game.utils.createVector();
 
 		//World objects
-		this.colonies = [];
+		this.walls = [];
 		this.foods = [];
+		this.colonies = [];
 
-		for (var i = 0; i < 1; i++) {
-			let colony = new Colony(this);
-			this.colonies.push(colony);
+		//Top wall
+		const wallWidth = 20;
+		let topWall = new Wall(this);
+		topWall.width = this.size;
+		topWall.height = wallWidth;
+		topWall.position.set({
+			x: this.bounds.min.x,
+			y: this.bounds.min.y
+		});
+
+		//Bottom wall
+		let bottomWall = new Wall(this);
+		bottomWall.width = this.size;
+		bottomWall.height = wallWidth;
+		bottomWall.position.set({
+			x: this.bounds.min.x,
+			y: this.bounds.max.y - bottomWall.height
+		});
+
+		//Left wall
+		let leftWall = new Wall(this);
+		leftWall.width = wallWidth;
+		leftWall.height = this.size;
+		leftWall.position.set({
+			x: this.bounds.min.x,
+			y: this.bounds.min.y
+		});
+
+		//Right wall
+		let rightWall = new Wall(this);
+		rightWall.width = wallWidth;
+		rightWall.height = this.size;
+		rightWall.position.set({
+			x: this.bounds.max.x - rightWall.width,
+			y: this.bounds.min.y
+		});
+
+		this.walls.push(topWall, bottomWall, leftWall, rightWall)
+
+		for (var i = 0; i < 10; i++) {
+			this.addWall();
 		}
 
 		for (var i = 0; i < 1; i++) {
-			let food = new Food(this);
-			this.foods.push(food);
+			this.addColony();
+		}
+
+		for (var i = 0; i < 2; i++) {
+			this.addFood();
 		}
 
 		window.world = this;
@@ -70,6 +112,11 @@ class World {
 			food.render();
 		}
 
+		//Render walls
+		for (let wall of this.walls) {
+			wall.render();
+		}
+
 		//End camera
 		this.camera.end();
 	}
@@ -92,7 +139,10 @@ class World {
 			food.update();
 		}
 
-		this.handleWallToAntCollision();
+		//Update walls
+		for (let wall of this.walls) {
+			wall.update();
+		}
 
 		//Update world mouse
 		let worldMouse = this.camera.screenToWorld(Game.constants.mouse.x, Game.constants.mouse.y);
@@ -102,67 +152,89 @@ class World {
 		this.quadtree.clear();
 	}
 
-	handleWallToAntCollision() {
-		//Top wall
-		const antsTop = this.quadtree.retrieve({
-			x: this.bounds.min.x,
-			y: this.bounds.min.y,
-			width: this.size,
-			height: 50
-		});
-
-		//Right wall
-		const antsRight = this.quadtree.retrieve({
-			x: this.bounds.max.x,
-			y: this.bounds.min.y,
-			width: 50,
-			height: this.size
-		});
-
-		//Bottom wall
-		const antsBottom = this.quadtree.retrieve({
-			x: this.bounds.min.x,
-			y: this.bounds.max.y,
-			width: this.size,
-			height: 50
-		});
-
-		//Left wall
-		const antsLeft = this.quadtree.retrieve({
-			x: this.bounds.min.x,
-			y: this.bounds.min.y,
-			width: 50,
-			height: this.size
-		});
-
-		for (let ant of antsTop) {
-			if (ant.y < this.bounds.min.y) {
-				ant.self.dispose();
-			}
-		}
-
-		for (let ant of antsBottom) {
-			if (ant.y > this.bounds.max.y) {
-				ant.self.dispose();
-			}
-		}
-
-		for (let ant of antsRight) {
-			if (ant.x > this.bounds.max.x) {
-				ant.self.dispose();
-			}
-		}
-
-		for (let ant of antsLeft) {
-			if (ant.x < this.bounds.min.x) {
-				ant.self.dispose();
-			}
-		}
-	}
-
 	getRandomPosition() {
 		let x = Game.utils.random(this.bounds.min.x, this.bounds.max.x);
 		let y = Game.utils.random(this.bounds.min.y, this.bounds.max.y);
 		return Game.utils.createVector(x, y);
+	}
+
+	addWall() {
+		let wall = new Wall(this);
+		let startTime = new Date().getTime();
+
+		//Avoid other walls collision
+		for (var i = 0; i < this.walls.length; i++) {
+			let otherWall = this.walls[i];
+			if (otherWall == wall) continue;
+			if (wall.position.x + wall.width >= otherWall.position.x && wall.position.x <= otherWall.position.x + otherWall.width && wall.position.y + wall.height >= otherWall.position.y && wall.position.y <= otherWall.position.y + otherWall.height) {
+				wall = new Wall(this);
+				i = -1;
+			}
+
+			if (new Date().getTime() - startTime > 1000) break;
+		}
+
+		this.walls.push(wall);
+		return wall;
+	}
+
+	addFood() {
+		let food = new Food(this);
+		let startTime = new Date().getTime();
+		let range = this.size / 2;
+
+		//Avoid spawning the food inside the walls
+		for (var i = 0; i < this.walls.length; i++) {
+			let wall = this.walls[i];
+			if (food.position.x + food.radius >= wall.position.x && food.position.x - food.radius <= wall.position.x + wall.width && food.position.y + food.radius >= wall.position.y && food.position.y - food.radius <= wall.position.y + wall.height) {
+				food = new Food(this);
+				i = -1;
+			}
+
+			//Spawn the food as far away as possible from the colonies
+			for (var j = 0; j < this.colonies.length; j++) {
+				let colony = this.colonies[j];
+				if (colony.position.dist(food.position) < colony.radius + food.radius + range) {
+					food = new Food(this);
+					range -= 5;
+					i = -1;
+				}
+			}
+
+			if (new Date().getTime() - startTime > 1000) break;
+		}
+
+		this.foods.push(food);
+		return food;
+	}
+
+	addColony() {
+		let colony = new Colony(this);
+		let startTime = new Date().getTime();
+		let range = this.size;
+
+		//Avoid spawning the colony inside the walls
+		for (var i = 0; i < this.walls.length; i++) {
+			let wall = this.walls[i];
+			if (colony.position.x + colony.radius >= wall.position.x && colony.position.x - colony.radius <= wall.position.x + wall.width && colony.position.y + colony.radius >= wall.position.y && colony.position.y - colony.radius <= wall.position.y + wall.height) {
+				colony = new Colony(this);
+				i = -1;
+			}
+
+			//Spawn the colony as far away as possible from the foods
+			for (var j = 0; j < this.foods.length; j++) {
+				let food = this.foods[j];
+				if (colony.position.dist(food.position) < colony.radius + food.radius + range) {
+					colony = new Colony(this);
+					range -= 5;
+					i = -1;
+				}
+			}
+
+			if (new Date().getTime() - startTime > 1000) break;
+		}
+
+		this.colonies.push(colony);
+		return colony;
 	}
 }

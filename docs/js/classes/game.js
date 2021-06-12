@@ -11,6 +11,8 @@ class Game {
 
 		//Game objects
 		this.world = new World(this);
+
+		this.frameRate = 0;
 	}
 
 	render() {
@@ -19,11 +21,30 @@ class Game {
 
 		//Render world
 		this.world.render();
+
+		//Add text
+		let textSize = 15;
+		Game.draw(context => {
+			context.fillText(`Generation ${1}`, 0, this.canvas.height - textSize * 2);
+			context.fillText(`Best: ${0}`, 0, this.canvas.height - textSize);
+			context.fillText(`FPS: ${this.frameRate}`, 0, this.canvas.height);
+			context.fillStyle = "#00ff06";
+		}, {
+			textAlign: "left",
+			textBaseline: "bottom",
+			font: `${textSize}px verdana`
+		});
 	}
 
 	update() {
 		//Update world
 		this.world.update();
+
+		//Update frame rate text once every 10 frames
+		if (Game.constants.frameCount % 10 == 0) {
+			this.frameRate = Game.constants.frameRate.toString();
+			this.frameRate = this.frameRate.substr(0, this.frameRate.indexOf(".") + 3);
+		}
 	}
 
 	static draw(f, options) {
@@ -143,7 +164,7 @@ Game.utils = {
 	loadJSON: function(src, callback) {
 		const xhr = new XMLHttpRequest();
 		xhr.open("GET", src);
-		
+
 		xhr.onload = function() {
 			const res = JSON.parse(xhr.response);
 			if (typeof callback == "function") callback(res);
@@ -164,13 +185,13 @@ Game.utils = {
 		link.dispatchEvent(event);
 		link.remove();
 	},
-	loadImage: function (src, callback) {
+	loadImage: function(src, callback) {
 		const imgCanvas = document.createElement("canvas");
 		const imgContext = imgCanvas.getContext("2d");
 		const img = new Image();
 		img.src = src;
 
-		img.onload = function () {
+		img.onload = function() {
 			imgCanvas.width = img.width;
 			imgCanvas.height = img.height;
 			imgContext.drawImage(img, 0, 0, img.width, img.height);

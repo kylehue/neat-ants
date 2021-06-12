@@ -6,7 +6,7 @@ class Colony {
 		this.radius = 20;
 		this.ants = [];
 
-		for(var i = 0; i < 100; i++){
+		for(var i = 0; i < 500; i++){
 			this.ants.push(new Ant(this));
 		}
 	}

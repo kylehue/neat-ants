@@ -1,11 +1,13 @@
 class Ant {
 	constructor(colony) {
 		this.colony = colony;
+		this.food = null;
 		this.position = this.colony.position.copy();
 		this.velocity = Game.utils.createVector();
 		this.angle = Game.utils.random(-Math.PI, Math.PI);
 		this.size = 6;
 		this.color = "#fff"
+		this.speed = 1;
 	}
 
 	render() {
@@ -20,15 +22,22 @@ class Ant {
 		}, {
 			fillStyle: this.color
 		});
+
+		if (this.food) this.food.render();
 	}
 
 	update() {
+		if (this.food) this.food.position.set(this.position);
 		this.position.add(this.velocity);
 		this.velocity.set({
 			x: Math.cos(this.angle),
 			y: Math.sin(this.angle)
 		});
-		this.velocity.setMag(0.6);
+		this.velocity.setMag(this.speed);
+
+		if (Game.utils.keyIsDown(87)) {
+			this.speed += 0.1;
+		}
 
 		if (Game.utils.keyIsDown(68)) {
 			this.angle += 0.1;

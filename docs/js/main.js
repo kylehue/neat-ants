@@ -1,5 +1,8 @@
 addEventListener("load", function() {
 	const game = new Game();
+	const neat = new Neat(0,1,0, {
+		populationSize: 1
+	});
 
 	//Main loop
 	let startTime = 0;

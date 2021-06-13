@@ -7,6 +7,9 @@ class Food {
 		this.radius = Game.utils.random(6, 12);
 		this.color = "#40ff5b"
 
+		this.vertices = [];
+
+		this.updateVertices();
 
 		if (this.ant) {
 			this.position.set(this.ant.position);
@@ -22,6 +25,24 @@ class Food {
 		}, {
 			fillStyle: this.color
 		});
+
+		this.color = "#40ff5b"
+	}
+
+	updateVertices() {
+		this.vertices = [];
+		let sides = 8;
+		for(var angle = -Math.PI; angle < Math.PI; angle += Math.PI * 2 / sides){
+			this.vertices.push(Game.utils.createVector(
+				this.position.x + Math.cos(angle) * this.radius,
+				this.position.y + Math.sin(angle) * this.radius
+			));
+		}
+	}
+
+	addRadius(radius) {
+		this.radius += radius;
+		this.updateVertices();
 	}
 
 	update() {
@@ -40,7 +61,7 @@ class Food {
 				//Don't let an ant take more foods if it's already carrying one
 				if (!ant.self.food) {
 					if (ant.self.position.dist(this.position) < this.radius + ant.self.size / 2) {
-						this.radius -= 0.1;
+						this.addRadius(-0.1);
 						ant.self.food = new Food(this.world, ant.self);
 					}
 				}

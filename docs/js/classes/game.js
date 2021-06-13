@@ -64,6 +64,75 @@ class Game {
 }
 
 Game.utils = {
+	intersects: function(x1, y1, x2, y2, x3, y3, x4, y4) {
+		let tn = (x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4);
+		let td = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+		let t = tn / td;
+		let un = (x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3);
+		let ud = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+		let u = un / ud;
+		return t <= 1 && t >= 0 && u >= 0 && u <= 1;
+	},
+	SAT: function(verticesA, verticesB) {
+		const getAxes = function(vertices) {
+			let axes = [];
+			for (var i = 0; i < vertices.length; i++) {
+				let currentVertex = vertices[i];
+				let nextVertex = vertices[i + 1 == vertices.length ? 0 : i + 1];
+				let axisNormal = {
+					x: nextVertex.y - currentVertex.y,
+					y: -(nextVertex.x - currentVertex.x)
+				};
+
+				axes.push(axisNormal);
+			}
+
+			return axes;
+		}
+
+		const getProjection = function(axis, vertices) {
+			let min = Infinity;
+			let max = -Infinity;
+
+			for (let vertex of vertices) {
+				let projection = axis.x * vertex.x + axis.y * vertex.y;
+				min = projection < min ? projection : min;
+				max = projection > max ? projection : max;
+			}
+
+			return {
+				min: min,
+				max: max
+			}
+		}
+
+		const getResult = function(verticesA, verticesB) {
+			let axesA = getAxes(verticesA);
+			let axesB = getAxes(verticesB);
+
+			for (let axis of axesA) {
+				let projectionA = getProjection(axis, verticesA);
+				let projectionB = getProjection(axis, verticesB);
+
+				if (!(projectionB.max >= projectionA.min && projectionA.max >= projectionB.min)) {
+					return false;
+				}
+			}
+
+			for (let axis of axesB) {
+				let projectionA = getProjection(axis, verticesA);
+				let projectionB = getProjection(axis, verticesB);
+
+				if (!(projectionB.max >= projectionA.min && projectionA.max >= projectionB.min)) {
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		return getResult(verticesA, verticesB);
+	},
 	createVector: function(x, y) {
 		x = typeof x != "number" ? 0 : x;
 		y = typeof y != "number" ? 0 : y;
@@ -102,10 +171,13 @@ Game.utils = {
 			dist: function(v) {
 				return Math.sqrt((this.x - v.x) * (this.x - v.x) + (this.y - v.y) * (this.y - v.y));
 			},
+			dot: function(v) {
+				return this.x * v.x + this.y * v.y;
+			},
 			heading: function(v) {
 				let angle = 0;
 				if (!v) angle = Math.atan2(this.y, this.x);
-				else Math.atan2(v.y - this.y, v.x - this.x);
+				else angle = Math.atan2(v.y - this.y, v.x - this.x);
 				return angle;
 			},
 			copy: function() {

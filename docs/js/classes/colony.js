@@ -6,22 +6,40 @@ class Colony {
 		this.radius = 20;
 		this.ants = [];
 
-		for(var i = 0; i < 500; i++){
+		this.vertices = [];
+
+		this.updateVertices();
+
+		for(var i = 0; i < 1; i++){
 			this.ants.push(new Ant(this));
 		}
 	}
 
 	render() {
+		for (let ant of this.ants) {
+			ant.render();
+			if (ant == this.ants[0]) {
+				ant.renderSensors();
+			}
+		}
+
 		Game.draw(context => {
 			context.beginPath();
 			context.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2);
 			context.closePath();
 		}, {
-			fillStyle: "#ba6666"
+			fillStyle: "#d35166"
 		});
+	}
 
-		for (let ant of this.ants) {
-			ant.render();
+	updateVertices() {
+		this.vertices = [];
+		let sides = 8;
+		for(var angle = -Math.PI; angle < Math.PI; angle += Math.PI * 2 / sides){
+			this.vertices.push(Game.utils.createVector(
+				this.position.x + Math.cos(angle) * this.radius,
+				this.position.y + Math.sin(angle) * this.radius
+			));
 		}
 	}
 

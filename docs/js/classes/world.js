@@ -35,44 +35,40 @@ class World {
 
 		//Top wall
 		const wallWidth = 20;
-		let topWall = new Wall(this);
-		topWall.width = this.size;
-		topWall.height = wallWidth;
-		topWall.position.set({
-			x: this.bounds.min.x,
-			y: this.bounds.min.y
+		let topWall = new Wall(this, {
+			width: this.size,
+			height: wallWidth,
+			angle: 0,
+			position: Game.utils.createVector(0, this.bounds.min.y + wallWidth / 2)
 		});
 
 		//Bottom wall
-		let bottomWall = new Wall(this);
-		bottomWall.width = this.size;
-		bottomWall.height = wallWidth;
-		bottomWall.position.set({
-			x: this.bounds.min.x,
-			y: this.bounds.max.y - bottomWall.height
+		let bottomWall = new Wall(this, {
+			width: this.size,
+			height: wallWidth,
+			angle: 0,
+			position: Game.utils.createVector(0, this.bounds.max.y - wallWidth / 2)
 		});
 
 		//Left wall
-		let leftWall = new Wall(this);
-		leftWall.width = wallWidth;
-		leftWall.height = this.size;
-		leftWall.position.set({
-			x: this.bounds.min.x,
-			y: this.bounds.min.y
+		let leftWall = new Wall(this, {
+			width: wallWidth,
+			height: this.size,
+			angle: 0,
+			position: Game.utils.createVector(this.bounds.min.x + wallWidth / 2, 0)
 		});
 
 		//Right wall
-		let rightWall = new Wall(this);
-		rightWall.width = wallWidth;
-		rightWall.height = this.size;
-		rightWall.position.set({
-			x: this.bounds.max.x - rightWall.width,
-			y: this.bounds.min.y
+		let rightWall = new Wall(this, {
+			width: wallWidth,
+			height: this.size,
+			angle: 0,
+			position: Game.utils.createVector(this.bounds.max.x - wallWidth / 2, 0)
 		});
 
 		this.walls.push(topWall, bottomWall, leftWall, rightWall)
 
-		for (var i = 0; i < 10; i++) {
+		for (var i = 0; i < 20; i++) {
 			this.addWall();
 		}
 
@@ -80,7 +76,7 @@ class World {
 			this.addColony();
 		}
 
-		for (var i = 0; i < 2; i++) {
+		for (var i = 0; i < 3; i++) {
 			this.addFood();
 		}
 
@@ -102,11 +98,6 @@ class World {
 			fillStyle: "#43464d"
 		});
 
-		//Render colonies
-		for (let colony of this.colonies) {
-			colony.render();
-		}
-
 		//Render foods
 		for (let food of this.foods) {
 			food.render();
@@ -115,6 +106,11 @@ class World {
 		//Render walls
 		for (let wall of this.walls) {
 			wall.render();
+		}
+
+		//Render colonies
+		for (let colony of this.colonies) {
+			colony.render();
 		}
 
 		//End camera
@@ -165,16 +161,20 @@ class World {
 		//Avoid other walls collision
 		for (var i = 0; i < this.walls.length; i++) {
 			let otherWall = this.walls[i];
-			if (otherWall == wall) continue;
-			if (wall.position.x + wall.width >= otherWall.position.x && wall.position.x <= otherWall.position.x + otherWall.width && wall.position.y + wall.height >= otherWall.position.y && wall.position.y <= otherWall.position.y + otherWall.height) {
+			if (otherWall == wall) continue; //<<redundant, remove
+			if (wall.collidesWith(otherWall)) {
 				wall = new Wall(this);
 				i = -1;
 			}
 
-			if (new Date().getTime() - startTime > 1000) break;
+			//Ignore when it takes too long to find a position
+			if (new Date().getTime() - startTime > 1000) {
+				wall = null;
+				break;
+			}
 		}
 
-		this.walls.push(wall);
+		if (wall) this.walls.push(wall);
 		return wall;
 	}
 
@@ -186,7 +186,7 @@ class World {
 		//Avoid spawning the food inside the walls
 		for (var i = 0; i < this.walls.length; i++) {
 			let wall = this.walls[i];
-			if (food.position.x + food.radius >= wall.position.x && food.position.x - food.radius <= wall.position.x + wall.width && food.position.y + food.radius >= wall.position.y && food.position.y - food.radius <= wall.position.y + wall.height) {
+			if (wall.collidesWith(food)) {
 				food = new Food(this);
 				i = -1;
 			}
@@ -201,10 +201,14 @@ class World {
 				}
 			}
 
-			if (new Date().getTime() - startTime > 1000) break;
+			//Ignore when it takes too long to find a position
+			if (new Date().getTime() - startTime > 1000) {
+				food = null;
+				break;
+			}
 		}
 
-		this.foods.push(food);
+		if (food) this.foods.push(food);
 		return food;
 	}
 
@@ -216,7 +220,7 @@ class World {
 		//Avoid spawning the colony inside the walls
 		for (var i = 0; i < this.walls.length; i++) {
 			let wall = this.walls[i];
-			if (colony.position.x + colony.radius >= wall.position.x && colony.position.x - colony.radius <= wall.position.x + wall.width && colony.position.y + colony.radius >= wall.position.y && colony.position.y - colony.radius <= wall.position.y + wall.height) {
+			if (wall.collidesWith(colony)) {
 				colony = new Colony(this);
 				i = -1;
 			}
@@ -231,10 +235,13 @@ class World {
 				}
 			}
 
-			if (new Date().getTime() - startTime > 1000) break;
+			if (new Date().getTime() - startTime > 1000) {
+				colony = null;
+				break;
+			}
 		}
 
-		this.colonies.push(colony);
+		if (colony) this.colonies.push(colony);
 		return colony;
 	}
 }

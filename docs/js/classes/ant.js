@@ -1,12 +1,13 @@
 class Ant {
-	constructor(colony) {
+	constructor(colony, brain) {
 		this.colony = colony;
+		this.brain = brain;
 		this.food = null;
 		this.position = this.colony.position.copy();
-		this.velocity = Game.utils.createVector();
+		this.velocity = Game.utils.createVector().random2D();
 		this.angle = Game.utils.random(-Math.PI, Math.PI);
 		this.foodDetectionRadius = Math.max(this.colony.world.size / 4, 250);
-		this.size = 5;
+		this.size = 2;
 		this.color = "#fff";
 		this.speed = 1;
 		this.sensors = {
@@ -16,6 +17,8 @@ class Ant {
 		};
 
 		this.vertices = [];
+		this.lifespan = 0;
+		this.extraPoints = 0;
 
 		this.translate(this.position.x, this.position.y);
 	}
@@ -32,6 +35,8 @@ class Ant {
 		}, {
 			fillStyle: this.color,
 		});
+
+		this.color = "#fff";
 
 		if (this.food) this.food.render();
 	}
@@ -148,6 +153,11 @@ class Ant {
 				x: this.position.x + Math.cos(this.angle) * this.size,
 				y: this.position.y + Math.sin(this.angle) * this.size
 			});
+
+			if (this.position.dist(this.colony.position) < this.colony.radius + this.size) {
+				this.food = null;
+				this.extraPoints += this.colony.world.size * 4;
+			}
 		}
 
 		//Update position, velocity, angle
@@ -161,27 +171,30 @@ class Ant {
 		//Update sensors
 		this.updateSensors();
 
-		if (Game.utils.keyIsDown(87)) {
-			this.velocity.setMag(this.speed);
-		} else {
-			this.velocity.setMag(0);
-		}
-
-		if (Game.utils.keyIsDown(68)) {
-			this.angle += 0.1;
-		}
-
-		if (Game.utils.keyIsDown(65)) {
-			this.angle -= 0.1;
-		}
-
 		this.think();
+		this.calculateFitness();
+		this.lifespan += 0.002;
 	}
 
 	think() {
 		let inputs = this.getInputs();
 		inputs = Object.values(inputs);
-		let outputs = 0;
+		let outputs = this.brain.feedforward(inputs);
+
+		if (outputs[0] < 0.5 && outputs[1] > 0.5) {
+			this.angle += 0.1;
+		}
+
+		if (outputs[1] < 0.5 && outputs[0] > 0.5) {
+			this.angle -= 0.1;
+		}
+	}
+
+	calculateFitness() {
+		let score = this.position.dist(this.colony.position);
+		score += this.extraPoints;
+		score += this.lifespan;
+		this.brain.fitness = score;
 	}
 
 	static getIntersection(x1, y1, x2, y2, x3, y3, x4, y4) {
@@ -325,8 +338,8 @@ class Ant {
 		});
 
 		const closestFood = detectedFoods[0];
-		let closestFoodX = Game.utils.random(0, 1);
-		let closestFoodY = Game.utils.random(0, 1);
+		let closestFoodX = 0;
+		let closestFoodY = 0;
 
 		if (closestFood) {
 			closestFoodX = Game.utils.map(closestFood.position.x, world.bounds.min.x, world.bounds.max.x, 0, 1);
@@ -339,6 +352,10 @@ class Ant {
 		//Input #6 & #7: Colony position
 		inputs.colonyX = Game.utils.map(this.colony.position.x, world.bounds.min.x, world.bounds.max.x, 0, 1);
 		inputs.colonyY = Game.utils.map(this.colony.position.y, world.bounds.min.y, world.bounds.max.y, 0, 1);
+
+		//Input #8 & #9: This ant's position
+		inputs.positionX = Game.utils.map(this.position.x, world.bounds.min.x, world.bounds.max.x, 0, 1);
+		inputs.positionY = Game.utils.map(this.position.y, world.bounds.min.y, world.bounds.max.y, 0, 1);
 
 		return inputs;
 	}

@@ -15,6 +15,10 @@ class Game {
 		this.frameRate = 0;
 	}
 
+	reset() {
+		this.world = new World(this);
+	}
+
 	render() {
 		//Clear
 		this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -23,10 +27,10 @@ class Game {
 		this.world.render();
 
 		//Add text
-		let textSize = 15;
+		let textSize = 35;
 		Game.draw(context => {
-			context.fillText(`Generation ${1}`, 0, this.canvas.height - textSize * 2);
-			context.fillText(`Best: ${0}`, 0, this.canvas.height - textSize);
+			context.fillText(`Generation ${neat.population.generation + 1}`, 0, this.canvas.height - textSize * 2);
+			context.fillText(`Best: ${Math.round(neat.population.fittest.fitness)}`, 0, this.canvas.height - textSize);
 			context.fillText(`FPS: ${this.frameRate}`, 0, this.canvas.height);
 			context.fillStyle = "#00ff06";
 		}, {

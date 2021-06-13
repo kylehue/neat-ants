@@ -63,6 +63,7 @@ class Food {
 					if (ant.self.position.dist(this.position) < this.radius + ant.self.size / 2) {
 						this.addRadius(-0.1);
 						ant.self.food = new Food(this.world, ant.self);
+						ant.self.extraPoints += this.world.size * 2;
 					}
 				}
 			}

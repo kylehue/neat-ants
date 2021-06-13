@@ -10,17 +10,16 @@ class Colony {
 
 		this.updateVertices();
 
-		for(var i = 0; i < 1; i++){
-			this.ants.push(new Ant(this));
+		for(var i = 0; i < neat.populationSize; i++){
+			this.ants.push(new Ant(this, neat.population.genomes[i]));
 		}
+
+		this.foodCount = 0;
 	}
 
 	render() {
 		for (let ant of this.ants) {
 			ant.render();
-			if (ant == this.ants[0]) {
-				ant.renderSensors();
-			}
 		}
 
 		Game.draw(context => {

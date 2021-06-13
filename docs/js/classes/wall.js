@@ -87,15 +87,15 @@ class Wall {
 		//Check if ants overlaps this wall
 		//If an ant does, dispose the ant
 		let ants = this.world.quadtree.retrieve({
-			x: this.position.x,
-			y: this.position.y,
-			width: this.width,
-			height: this.height
+			x: this.position.x - this.width,
+			y: this.position.y - this.height,
+			width: this.width * 2,
+			height: this.height * 2
 		});
 
 		for (let ant of ants) {
 			if (this.collidesWith(ant.self)) {
-				//ant.self.dispose();
+				ant.self.dispose();
 				//ant.self.lookBack();
 			}
 		}

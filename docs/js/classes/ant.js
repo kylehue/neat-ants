@@ -7,18 +7,21 @@ class Ant {
 		this.velocity = Game.utils.createVector().random2D();
 		this.angle = Game.utils.random(-Math.PI, Math.PI);
 		this.foodDetectionRadius = Math.max(this.colony.world.size / 4, 250);
+		this.foodDetectionRadius = 9999;
 		this.size = 2;
 		this.color = "#fff";
 		this.speed = 1;
 		this.sensors = {
 			front: Game.utils.createVector(),
 			left: Game.utils.createVector(),
-			right: Game.utils.createVector()
+			right: Game.utils.createVector(),
+			maxDistance: 100
 		};
 
 		this.vertices = [];
 		this.lifespan = 0;
 		this.extraPoints = 0;
+		this.longestDistanceTravelled = 0;
 
 		this.translate(this.position.x, this.position.y);
 	}
@@ -156,6 +159,7 @@ class Ant {
 
 			if (this.position.dist(this.colony.position) < this.colony.radius + this.size) {
 				this.food = null;
+				this.colony.foodCount++;
 				this.extraPoints += this.colony.world.size * 4;
 			}
 		}
@@ -171,9 +175,26 @@ class Ant {
 		//Update sensors
 		this.updateSensors();
 
+		/*if (Game.utils.keyIsDown(87)) {
+			this.velocity.setMag(1);
+		} else {
+			this.velocity.setMag(0);
+		}
+
+		if (Game.utils.keyIsDown(68)) {
+			this.angle += 0.05;
+		}
+
+		if (Game.utils.keyIsDown(65)) {
+			this.angle -= 0.05;
+		}*/
+
 		this.think();
 		this.calculateFitness();
+		this.getInputs();
 		this.lifespan += 0.002;
+		let distanceFromColony = this.position.dist(this.colony.position);
+		this.longestDistanceTravelled = distanceFromColony > this.longestDistanceTravelled ? distanceFromColony : this.longestDistanceTravelled;
 	}
 
 	think() {
@@ -182,18 +203,19 @@ class Ant {
 		let outputs = this.brain.feedforward(inputs);
 
 		if (outputs[0] < 0.5 && outputs[1] > 0.5) {
-			this.angle += 0.1;
+			this.angle += 0.075;
 		}
 
 		if (outputs[1] < 0.5 && outputs[0] > 0.5) {
-			this.angle -= 0.1;
+			this.angle -= 0.075;
 		}
 	}
 
 	calculateFitness() {
-		let score = this.position.dist(this.colony.position);
+		let score = 0;
+		score += this.longestDistanceTravelled;
 		score += this.extraPoints;
-		score += this.lifespan;
+		score -= this.lifespan;
 		this.brain.fitness = score;
 	}
 
@@ -224,18 +246,18 @@ class Ant {
 		}
 
 		this.sensors.front.set({
-			x: this.position.x + Math.cos(this.angle) * Number.MAX_SAFE_INTEGER,
-			y: this.position.y + Math.sin(this.angle) * Number.MAX_SAFE_INTEGER
+			x: this.position.x + Math.cos(this.angle) * this.sensors.maxDistance,
+			y: this.position.y + Math.sin(this.angle) * this.sensors.maxDistance
 		});
 
 		this.sensors.left.set({
-			x: this.position.x + Math.cos(this.angle - Math.PI * 0.15) * Number.MAX_SAFE_INTEGER,
-			y: this.position.y + Math.sin(this.angle - Math.PI * 0.15) * Number.MAX_SAFE_INTEGER
+			x: this.position.x + Math.cos(this.angle - Math.PI * 0.15) * this.sensors.maxDistance,
+			y: this.position.y + Math.sin(this.angle - Math.PI * 0.15) * this.sensors.maxDistance
 		});
 
 		this.sensors.right.set({
-			x: this.position.x + Math.cos(this.angle + Math.PI * 0.15) * Number.MAX_SAFE_INTEGER,
-			y: this.position.y + Math.sin(this.angle + Math.PI * 0.15) * Number.MAX_SAFE_INTEGER
+			x: this.position.x + Math.cos(this.angle + Math.PI * 0.15) * this.sensors.maxDistance,
+			y: this.position.y + Math.sin(this.angle + Math.PI * 0.15) * this.sensors.maxDistance
 		});
 
 		//Compute intersections
@@ -254,7 +276,7 @@ class Ant {
 				//Front
 				let intersectionFront = Ant.getIntersection(startPoint.x, startPoint.y, this.sensors.front.x, this.sensors.front.y, vertex.x, vertex.y, nextVertex.x, nextVertex.y);
 				if (intersectionFront) {
-					if (intersectionFront.t < minFront) {
+					if (intersectionFront.t < minFront && this.position.dist(intersectionFront) < this.sensors.maxDistance) {
 						minFront = intersectionFront.t;
 						nearestIntersectionFront = intersectionFront;
 					}
@@ -263,7 +285,7 @@ class Ant {
 				//Left
 				let intersectionLeft = Ant.getIntersection(startPoint.x, startPoint.y, this.sensors.left.x, this.sensors.left.y, vertex.x, vertex.y, nextVertex.x, nextVertex.y);
 				if (intersectionLeft) {
-					if (intersectionLeft.t < minLeft) {
+					if (intersectionLeft.t < minLeft && this.position.dist(intersectionLeft) < this.sensors.maxDistance) {
 						minLeft = intersectionLeft.t;
 						nearestIntersectionLeft = intersectionLeft;
 					}
@@ -272,7 +294,7 @@ class Ant {
 				//Right
 				let intersectionRight = Ant.getIntersection(startPoint.x, startPoint.y, this.sensors.right.x, this.sensors.right.y, vertex.x, vertex.y, nextVertex.x, nextVertex.y);
 				if (intersectionRight) {
-					if (intersectionRight.t < minRight) {
+					if (intersectionRight.t < minRight && this.position.dist(intersectionRight) < this.sensors.maxDistance) {
 						minRight = intersectionRight.t;
 						nearestIntersectionRight = intersectionRight;
 					}
@@ -301,6 +323,7 @@ class Ant {
 			height: this.size,
 			self: this
 		});
+		this.getInputs();
 	}
 
 	dispose() {
@@ -313,17 +336,17 @@ class Ant {
 		const world = this.colony.world;
 		//Input #1: Front sensor distance
 		inputs.frontSensorDistance = this.sensors.front.dist(this.position);
-		inputs.frontSensorDistance = Game.utils.map(inputs.frontSensorDistance, 0, world.size, 0, 1);
+		inputs.frontSensorDistance = Game.utils.map(inputs.frontSensorDistance, 0, this.sensors.maxDistance, 0, 1);
 
 		//Input #2: Left sensor distance
 		inputs.leftSensorDistance = this.sensors.left.dist(this.position);
-		inputs.leftSensorDistance = Game.utils.map(inputs.leftSensorDistance, 0, world.size, 0, 1);
+		inputs.leftSensorDistance = Game.utils.map(inputs.leftSensorDistance, 0, this.sensors.maxDistance, 0, 1);
 
 		//Input #3: Right sensor distance
 		inputs.rightSensorDistance = this.sensors.right.dist(this.position);
-		inputs.rightSensorDistance = Game.utils.map(inputs.rightSensorDistance, 0, world.size, 0, 1);
+		inputs.rightSensorDistance = Game.utils.map(inputs.rightSensorDistance, 0, this.sensors.maxDistance, 0, 1);
 
-		//Input #4 & #5: Closest food position
+		//Input #4: The ant's aim accuracy to the closest food
 		//Get all foods inside the ant's detection radius
 		const detectedFoods = [];
 		for (let food of world.foods) {
@@ -332,30 +355,41 @@ class Ant {
 			}
 		}
 
-		//Sort by closest
+		//Sort detected foods by closest
 		detectedFoods.sort((a, b) => {
 			return this.position.dist(a.position) - this.position.dist(b.position);
 		});
 
 		const closestFood = detectedFoods[0];
-		let closestFoodX = 0;
-		let closestFoodY = 0;
+		let foodAimAccuracy = 0;
 
 		if (closestFood) {
-			closestFoodX = Game.utils.map(closestFood.position.x, world.bounds.min.x, world.bounds.max.x, 0, 1);
-			closestFoodY = Game.utils.map(closestFood.position.y, world.bounds.min.y, world.bounds.max.y, 0, 1);
+			let foodDistance = this.position.dist(closestFood.position);
+			let foodAim = {
+				x: this.position.x + Math.cos(this.angle) * foodDistance,
+				y: this.position.y + Math.sin(this.angle) * foodDistance
+			};
+
+			foodAimAccuracy = closestFood.position.dist(foodAim);
+			foodAimAccuracy = Game.utils.map(foodAimAccuracy, 0, foodDistance * 2, 1, 0);
 		}
 
-		inputs.closestFoodX = closestFoodX;
-		inputs.closestFoodY = closestFoodY;
+		inputs.foodAimAccuracy = foodAimAccuracy;
 
-		//Input #6 & #7: Colony position
-		inputs.colonyX = Game.utils.map(this.colony.position.x, world.bounds.min.x, world.bounds.max.x, 0, 1);
-		inputs.colonyY = Game.utils.map(this.colony.position.y, world.bounds.min.y, world.bounds.max.y, 0, 1);
+		//Input #5: The ant's aim accuracy to its colony
+		let colonyDistance = this.position.dist(this.colony.position);
+		let colonyAim = {
+			x: this.position.x + Math.cos(this.angle) * colonyDistance,
+			y: this.position.y + Math.sin(this.angle) * colonyDistance
+		};
 
-		//Input #8 & #9: This ant's position
-		inputs.positionX = Game.utils.map(this.position.x, world.bounds.min.x, world.bounds.max.x, 0, 1);
-		inputs.positionY = Game.utils.map(this.position.y, world.bounds.min.y, world.bounds.max.y, 0, 1);
+		inputs.colonyAimAccuracy = Game.utils.map(this.colony.position.dist(colonyAim), 0, colonyDistance * 2, 1, 0);
+
+		//Input #6: An indicator whether the ant is carrying a food or not
+		inputs.hasFood = 0;
+		if (this.food) {
+			inputs.hasFood = 1;
+		}
 
 		return inputs;
 	}

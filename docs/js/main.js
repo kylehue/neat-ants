@@ -2,7 +2,7 @@ addEventListener("load", function() {
 	let evalTime = new Date().getTime();
 	let genSavepoint = 40;
 	let useTrainedData = true;
-	window.neat = new Neat(9, 1, 2, {
+	window.neat = new Neat(6, 1, 2, {
 		populationSize: 200,
 		mutationRate: 0.35,
 		warnings: true
@@ -39,7 +39,7 @@ addEventListener("load", function() {
 		game.render();
 		game.update();
 
-		if (new Date().getTime() - evalTime > maxEvalTime || !game.world.colonies[0].ants.length) {
+		if (new Date().getTime() - evalTime > maxEvalTime) {
 			nextEval();
 		}
 

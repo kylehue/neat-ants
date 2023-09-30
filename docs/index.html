@@ -12,7 +12,14 @@
 	<script src="js/classes/ant.js"></script>
 	<script src="js/classes/food.js"></script>
 	<script src="js/classes/wall.js"></script>
-	<script src="js/main.js"></script>
+	<script type="importmap">
+		{
+			"imports": {
+				"@kylehue/neat": "https://cdn.jsdelivr.net/npm/@kylehue/neat/+esm"
+			}
+		}
+	</script>
+	<script type="module" src="js/main.js"></script>
 </head>
 <body>
 

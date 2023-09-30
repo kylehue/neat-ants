@@ -1,4 +1,6 @@
-addEventListener("load", function() {
+import Neat from "@kylehue/neat";
+
+addEventListener("load", function () {
 	let evalTime = new Date().getTime();
 	let genSavepoint = 40;
 	let useTrainedData = true;

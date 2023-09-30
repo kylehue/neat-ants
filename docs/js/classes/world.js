@@ -87,7 +87,7 @@ class World {
 		//Start camera
 		this.camera.begin();
 		this.camera.moveTo(0, 0);
-		this.camera.zoomTo(this.size + 100);
+		this.camera.zoomTo(window.innerWidth);
 
 		//Bounds
 		Game.draw(context => {
